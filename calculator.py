@@ -1,0 +1,12 @@
+bCost  = int(float(input("back stake? "))*100)
+bOdds  = float(input("back odds?  "))
+lOdds  = float(input("lay odds?   "))
+tax    = float(input("lay comm.?  "))/100
+lCost  = ((bOdds*bCost)/(lOdds-tax))
+profit = ((bCost*bOdds)-(bCost+((lOdds-1)*lCost)))
+profit2= (lCost-(tax*lCost)-bCost)
+liability = (((lOdds-1)*lCost)+bCost)
+print("lay stake:        ",int(round(lCost))/100)
+print("liability:        ",int(round(liability))/100)
+print("profit:          ",int(round(profit))/100)
+print("alt. profit:     ",int(round(profit2))/100)
