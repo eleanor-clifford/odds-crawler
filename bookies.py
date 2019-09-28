@@ -8,23 +8,27 @@ class IBookie:
     name = ""
     urls = []
     drivers = []
+    ready=False
     def get_pre_clicks(self,driver): return []
     def get_event_tiles(self,soup): raise NotImplementedError
     def get_event_teams(self,soup): raise NotImplementedError
     def get_event_odds(self,soup): raise NotImplementedError
-    def get_events(self,queue):
-        options = webdriver.ChromeOptions()
-        options.add_argument('headless')
-        driver = webdriver.Chrome()
+    def setup(self):
+        if self.ready==True: raise RuntimeWarning("Already ready")
         for url in self.urls:
+            options = webdriver.ChromeOptions()
+            options.add_argument('headless')
+            driver = webdriver.Chrome(chrome_options=options)
             driver.get(url)
             time.sleep(5)
             for i in self.get_pre_clicks(driver):
-                #time.sleep(1)
                 a = ActionChains(driver)
                 a.move_to_element(i).perform()
-                #time.sleep(1)
                 i.click()
+            self.drivers.append(driver)
+        self.ready=True
+    def get_events(self,queue):
+        for driver in self.drivers:
             soup = BeautifulSoup(driver.page_source, 'html.parser')
             event_data = self.get_event_tiles(soup)
             for i in event_data:
@@ -33,7 +37,6 @@ class IBookie:
                 event.teams = self.get_event_teams(i)
                 event.odds = self.get_event_odds(i)
                 queue.put(event)
-        #queue.put(events)
 
 class Smarkets(IBookie):
     name = "Smarkets"
@@ -58,7 +61,8 @@ class Eight(IBookie):
         "https://www.888sport.com/football/#/filter/football/all/all/all/matches"
     ]
     def get_pre_clicks(self,driver): 
-        return [x for x in driver.find_elements_by_class_name("KambiBC-collapsible-container") if "KambiBC-expanded" not in x.get_attribute("class")]
+        return [driver.find_element_by_id("CookieMessageDiv").find_element_by_class_name("close"),
+            *[x for x in driver.find_elements_by_class_name("KambiBC-collapsible-container") if "KambiBC-expanded" not in x.get_attribute("class")]]
     def get_event_tiles(self,soup): return soup.find_all('div',class_="KambiBC-event-item__event-wrapper")
     def get_event_teams(self,soup): return [x.text.strip() for x in soup.find_all('div',class_="KambiBC-event-participants__name")]
     def get_event_odds(self,soup): 

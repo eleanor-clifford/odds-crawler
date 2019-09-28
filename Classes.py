@@ -18,4 +18,4 @@ class Option:
     #def __eq__(a,b):
     #    return str(a) == str(b)
     def __str__(self):
-        return "{}|{}|{}|{}|{}|{}|{}|{}|{}".format(self.back_teams[0],self.back_teams[1],self.lay_teams[0],self.lay_teams[1],self.back_odds,self.lay_odds, self.profit_ratio,self.back_market,self.lay_market)
+        return "{:<20}|{:<20}|{:<20}|{:<20}| {:06.2f} | {:06.2f} | {:+.5f} | {:<10} | {:<10}".format(self.back_teams[0],self.back_teams[1],self.lay_teams[0],self.lay_teams[1],self.back_odds,self.lay_odds, self.profit_ratio,self.back_market,self.lay_market)

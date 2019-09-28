@@ -1,4 +1,5 @@
 MIN_FUZZ = 50
+import calc
 from fuzzywuzzy import fuzz
 from Classes import Event,Option
 def match(events_1,events_2):
@@ -22,7 +23,6 @@ def matched_options(events_1,events_2):
     for i,j in matched_data:
         for x,y in zip(i.odds,j.odds):
             if not (isinstance(x,float) and isinstance(y,float)): continue
-            #print(x,y)
             option = Option()
             option.back_teams = i.teams
             option.lay_teams = j.teams
@@ -32,3 +32,4 @@ def matched_options(events_1,events_2):
             option.back_market = i.market
             option.lay_market = j.market
             options.append(option)
+    return options
