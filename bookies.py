@@ -9,6 +9,7 @@ class IBookie:
     urls = []
     drivers = []
     ready=False
+    def get_consecutive_clicks(self,driver): return []
     def get_pre_clicks(self,driver): return []
     def get_event_tiles(self,soup): raise NotImplementedError
     def get_event_teams(self,soup): raise NotImplementedError
@@ -20,12 +21,19 @@ class IBookie:
             options.add_argument('headless')
             driver = webdriver.Chrome(chrome_options=options)
             driver.get(url)
-            time.sleep(5)
+            time.sleep(4)
+            for j in self.get_consecutive_clicks(driver):
+                i = j()
+                a = ActionChains(driver)
+                a.move_to_element(i).perform()
+                i.click()
+                time.sleep(0.1)
             for i in self.get_pre_clicks(driver):
                 a = ActionChains(driver)
                 a.move_to_element(i).perform()
                 i.click()
             self.drivers.append(driver)
+        time.sleep(1)
         self.ready=True
     def get_events(self,queue):
         for driver in self.drivers:
@@ -43,9 +51,25 @@ class Smarkets(IBookie):
     urls = [
         'https://smarkets.com/listing/sport/football?period=today',
     ]
+    def get_consecutive_clicks(self,driver):
+        return [
+            lambda: driver.find_element_by_id("account-mobile-button"),#settings-dropdown-button"),
+            lambda: [x for x in driver.find_elements_by_class_name("label") if x.text == "Odds"][0],
+            lambda: [x for x in driver.find_elements_by_class_name("Select__option") if x.text == "Percent"][0],
+            lambda: driver.find_element_by_id("account-mobile-button"),#settings-dropdown-button"),        
+        ]
     def get_event_tiles(self,soup): return soup.find_all('li',class_="event-tile")
     def get_event_teams(self,soup): return [x.text.strip() for x in soup.find_all('span',class_="team-name")]
-    def get_event_odds(self,soup): return [calc.convert_odds(x.text.strip()) for x in soup.select("span.price.tick.sell.formatted-price.numeric-value")]
+    def get_event_odds(self,soup): 
+        return [calc.convert_odds(x.text.strip(),percent=True) for x in soup.select("span.price.tick.sell.formatted-price.numeric-value")]
+class Smarkets_Back(IBookie):
+    name = "Smarkets Back"
+    urls = [
+        'https://smarkets.com/listing/sport/football?period=today',
+    ]
+    def get_event_tiles(self,soup): return soup.find_all('li',class_="event-tile")
+    def get_event_teams(self,soup): return [x.text.strip() for x in soup.find_all('span',class_="team-name")]
+    def get_event_odds(self,soup): return [calc.convert_odds(x.text.strip()) for x in soup.select("span.price.tick.buy.formatted-price.numeric-value")]
 
 class Ladbrokes(IBookie):
     name = "Ladbrokes"
@@ -78,3 +102,22 @@ class Virgin(IBookie):
     def get_event_odds(self,soup): 
         normal = [calc.convert_odds(x.text.strip()) for x in soup.find_all("div",class_="sc-18i223d-0")]
         return [x-1 if x != None else None for x in normal]
+class TwoTwo(IBookie):
+    name = "22Bet"
+    urls = [
+        "https://22bet.co.uk/sport"
+    ]
+    def get_pre_clicks(self,driver): 
+        return [x for x in driver.find_elements_by_class_name("nav-link") if x.text == "Today"]
+    def get_event_tiles(self,soup): return soup.select("div.event.d-md-flex")
+    def get_event_teams(self,soup): 
+        t1 = soup.find('span',class_="team1")
+        t2 = soup.find('span',class_="team2")
+        if t1 == None or t2 == None: return []
+        return [t1.text.strip(),t2.text.strip()]
+    def get_event_odds(self,soup): return [calc.convert_odds(self.trykey(x).strip()) for x in soup.find_all("span",class_="odd")]
+    def trykey(self,x):
+        try:
+            return x["data-odd-value"]
+        except KeyError:
+            return "-1"

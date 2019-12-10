@@ -5,15 +5,19 @@ import operator
 import math
 import matplotlib.pyplot as plt
 import numpy as np
+import sys
 
-def convert_odds(x):
+def convert_odds(x,percent=False):
     if x == None: return None
-    if isinstance(x,str): x = x.replace(" ","").replace("\n","")
-    try: return float(x)
+    if isinstance(x,str): x = x.replace(" ","").replace("\n","").replace("%","")
+    try: 
+        y = float(x)
     except (ValueError):
         if "/" in x:
-            return float(x.split("/")[0])/float(x.split("/")[1]) + 1
+            y = float(x.split("/")[0])/float(x.split("/")[1]) + 1
         else: return None
+    if percent: y = 100/y
+    return y
         
 def ratio(back_odds,lay_odds,cmsn):
     return back_odds - (1 + back_odds*(lay_odds - 1)/(lay_odds - cmsn))
@@ -30,6 +34,12 @@ def back_ratio(odds):
     return st[0]*odds[0] - sum(st)
 def product(iterable):
     return reduce(operator.mul, iterable, 1)
+def lay_stake(back_odds,lay_odds,cmsn):
+    return back_odds/(lay_odds-cmsn)
+def liability(back_odds,lay_odds,cmsn):
+    return 1 + lay_stake(back_odds,lay_odds,cmsn)*(lay_odds - 1)
+def liablity_ratio(back_odds,lay_odds,cmsn):
+    return ratio(back_odds,lay_odds,cmsn)/liability(back_odds,lay_odds,cmsn)
 
 ##### COMPLEX METHODS FOR VARIABLE TURNOVER #####
 
@@ -75,10 +85,32 @@ def max_liabiity(t,back_odds,lay_odds,max_turnover):
     turnover_remaining = max_turnover - powersum(back_odds,max_full_bets)
     return 1 + powersum(back_odds,max_full_bets)*t*(lay_odds-1) + turnover_remaining*t*(lay_odds-1)
 if __name__ == "__main__":
+    if "-a" in sys.argv:
+        req_liability = float(input("liability?  "))
+        back_odds = float(input("back odds?  "))
+        lay_odds = input("lay odds?   ")
+        if lay_odds[-1] == "%":
+            lay_odds = 100/float(lay_odds[:-1])
+        else: lay_odds = float(lay_odds)
+        unit_lay_stake = lay_stake(back_odds,lay_odds,CMSN)
+        unit_liability = liability(back_odds, lay_odds, CMSN)
+        back_stake = req_liability / unit_liability
+        lay_stake = back_stake*unit_lay_stake
+        profit = ((back_stake*back_odds)-(back_stake+((lay_odds-1)*lay_stake)))
+        profit2= (lay_stake-(CMSN*lay_stake)-back_stake)
+        print("back stake:       ",int(round(back_stake*100))/100)
+        print("lay stake:        ",int(round(lay_stake*100))/100)
+        print("liability:        ",int(round(req_liability*100))/100)
+        print("profit:           ",int(round(profit*100))/100)
+        print("alt. profit:      ",int(round(profit2*100))/100)
+        raise SystemExit
     turnover = float(input("turnover? "))
     back_stake  = int(float(input("back stake? "))*100)
     back_odds  = float(input("back odds?  "))
-    lay_odds  = float(input("lay odds?   "))
+    lay_odds = input("lay odds?   ")
+    if lay_odds[-1] == "%":
+        lay_odds = 100/float(lay_odds[:-1])
+    else: lay_odds = float(lay_odds)
     if turnover == 1.0:
         lay_stake  = ((back_odds*back_stake)/(lay_odds-CMSN))
         profit = ((back_stake*back_odds)-(back_stake+((lay_odds-1)*lay_stake)))
@@ -86,8 +118,8 @@ if __name__ == "__main__":
         liability = (((lay_odds-1)*lay_stake)+back_stake)
         print("lay stake:        ",int(round(lay_stake))/100)
         print("liability:        ",int(round(liability))/100)
-        print("profit:          ",int(round(profit))/100)
-        print("alt. profit:     ",int(round(profit2))/100)
+        print("profit:           ",int(round(profit))/100)
+        print("alt. profit:      ",int(round(profit2))/100)
     else:
         liability_cap = float(input("liabiliity cap? "))
         fair_odds = float(input("fair odds? "))
